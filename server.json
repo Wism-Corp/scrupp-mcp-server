@@ -1,0 +1,35 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
+  "name": "io.github.wism-corp/scrupp",
+  "description": "Export LinkedIn, Sales Navigator and Apollo searches, find decision makers at a company, and find and verify work email addresses",
+  "repository": {
+    "url": "https://github.com/Wism-Corp/scrupp-mcp-server",
+    "source": "github"
+  },
+  "version": "0.1.0",
+  "websiteUrl": "https://scrupp.com/docs/api/integrations-jobs",
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "@scrupp/mcp-server",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "SCRUPP_API_KEY",
+          "description": "Scrupp API key, from Settings → API Keys at app.scrupp.com",
+          "isRequired": true,
+          "isSecret": true
+        },
+        {
+          "name": "SCRUPP_WAIT_SECONDS",
+          "description": "How long a tool waits for a job before handing back its id instead. Default 120.",
+          "isRequired": false
+        }
+      ]
+    }
+  ]
+}

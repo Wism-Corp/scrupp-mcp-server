@@ -1,0 +1,38 @@
+{
+  "name": "@scrupp/mcp-server",
+  "version": "0.1.0",
+  "description": "MCP server for Scrupp — export LinkedIn, Sales Navigator and Apollo searches, find decision makers, and find and verify work emails",
+  "keywords": [
+    "mcp",
+    "modelcontextprotocol",
+    "scrupp",
+    "linkedin",
+    "sales-navigator",
+    "apollo",
+    "lead-generation",
+    "email-finder"
+  ],
+  "license": "MIT",
+  "homepage": "https://scrupp.com/docs/api/integrations-jobs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Wism-Corp/scrupp-mcp-server.git"
+  },
+  "type": "module",
+  "bin": {
+    "scrupp-mcp": "src/index.js"
+  },
+  "files": [
+    "src",
+    "server.json",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "mcpName": "io.github.wism-corp/scrupp",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.13.0",
+    "zod": "^3.24.0"
+  }
+}
