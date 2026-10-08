@@ -17,9 +17,10 @@ const SPENDS = { readOnlyHint: false, destructiveHint: false, idempotentHint: tr
  * machine with their own key. `"core"` is what the hosted connector exposes:
  * no tool that gathers data from LinkedIn or out of the shared lead base, only
  * email finding and verification plus the bookkeeping tools. `"sn"` is the
- * private Sales Navigator connector (mcp.scrupp.com/sn): core plus Sales
- * Navigator search, which the Scrupp API runs only on the caller's own
- * connected LinkedIn account.
+ * private connector (mcp.scrupp.com/sn): core plus the rest of the API —
+ * Sales Navigator search built from words, LinkedIn and Apollo searches,
+ * profiles, companies, decision makers — which the Scrupp API runs only on the
+ * caller's own connected accounts.
  */
 export function createServer({ toolset = "full" } = {}) {
 	const server = new McpServer({ name: "scrupp", version: "0.3.0" });
@@ -73,7 +74,7 @@ export function createServer({ toolset = "full" } = {}) {
 					const result = await runJob({
 						type: jobType,
 						input: toInput(args),
-						idempotencyKey: `mcp-${name}-${JSON.stringify(toInput(args))}`.slice(0, 200),
+						idempotencyKey: `mcp-${jobType}-${JSON.stringify(toInput(args))}`.slice(0, 200),
 						waitSeconds: args.wait_seconds ?? DEFAULT_WAIT_SECONDS,
 					});
 					return json(result);
@@ -160,12 +161,21 @@ export function createServer({ toolset = "full" } = {}) {
 			toInput: searchInput,
 			type: "sales_navigator.search",
 		});
+	}
 
+	// The rest of the API. On the private connector every one of these runs on the
+	// user's own connected accounts only: the Scrupp API holds the connector's key
+	// to the caller's sessions and refuses rather than borrowing anyone else's.
+	const ownAccounts = sn
+		? " Runs only on the user's own accounts connected with the Scrupp extension; without one it is refused, never run on someone else's."
+		: "";
+
+	if (full || sn) {
 		extractionTool({
 			name: "scrupp_export_linkedin_search",
 			title: "Export a LinkedIn search",
 			description:
-				"Extract the people from a regular LinkedIn people-search URL. Use this for linkedin.com/search/results/people URLs; use the Sales Navigator tool for linkedin.com/sales URLs.",
+				"Extract the people from a regular LinkedIn people-search URL. Use this for linkedin.com/search/results/people URLs; use the Sales Navigator tool for linkedin.com/sales URLs." + ownAccounts,
 			schema: searchSchema,
 			toInput: searchInput,
 			type: "linkedin.search",
@@ -175,7 +185,7 @@ export function createServer({ toolset = "full" } = {}) {
 			name: "scrupp_run_apollo_search",
 			title: "Run an Apollo search",
 			description:
-				"Extract the people from an Apollo search URL. Requires a connected Apollo account, passed as `account`.",
+				"Extract the people from an Apollo search URL. Requires a connected Apollo account, passed as `account`." + ownAccounts,
 			schema: { ...searchSchema, account: z.string().describe("Connected Apollo account email. Required.") },
 			toInput: searchInput,
 			type: "apollo.search",
@@ -185,19 +195,23 @@ export function createServer({ toolset = "full" } = {}) {
 			name: "scrupp_enrich_linkedin_profiles",
 			title: "Enrich LinkedIn profiles",
 			description:
-				"Full profile data for LinkedIn profile URLs: current title, company, location, experience.",
+				"Full profile data for LinkedIn profile URLs: current title, company, location, experience." + ownAccounts,
 			schema: {
 				profile_urls: z.array(z.string().url()).min(1).describe("LinkedIn profile URLs."),
+				with_emails: z
+					.boolean()
+					.optional()
+					.describe("Also find and verify work emails (billed per enriched profile plus per email found). Defaults to false."),
 			},
 			toInput: (args) => ({ items: args.profile_urls }),
-			type: "linkedin.profile",
+			type: (args) => (args.with_emails ? "email.linkedin" : "linkedin.profile"),
 		});
 
 		extractionTool({
 			name: "scrupp_lookup_company",
 			title: "Look up a company",
 			description:
-				"Company data — size, industry, location, website, LinkedIn — from a domain, a company LinkedIn URL, or a name.",
+				"Company data — size, industry, location, website, LinkedIn — from a domain, a company LinkedIn URL, or a name." + ownAccounts,
 			schema: {
 				lookup_by: z.enum(["domain", "linkedin", "name"]).describe("What the values in `companies` are."),
 				companies: z.array(z.string()).min(1).describe("Domains, LinkedIn URLs or names."),
@@ -210,7 +224,7 @@ export function createServer({ toolset = "full" } = {}) {
 			name: "scrupp_find_decision_makers",
 			title: "Find decision makers at a company",
 			description:
-				"The people worth writing to at a company you only know the domain, LinkedIn URL or name of. Returns names, titles and (where found) work emails.",
+				"The people worth writing to at a company you only know the domain, LinkedIn URL or name of. Returns names, titles and (where found) work emails." + ownAccounts,
 			schema: {
 				find_by: z.enum(["domain", "linkedin", "name"]).describe("What the values in `companies` are."),
 				companies: z.array(z.string()).min(1).describe("Domains, LinkedIn URLs or names."),
