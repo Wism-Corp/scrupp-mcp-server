@@ -39,13 +39,24 @@ async function call(path, { method = "GET", body, headers } = {}) {
 	// A 409 on the result endpoint means "not finished yet" — the caller decides.
 	if (!response.ok && response.status !== 409) {
 		throw new ScruppError(
-			payload.message ?? payload.error ?? `Scrupp returned ${response.status}`,
-			payload.error_code,
+			errorText(payload.message ?? payload.error, `Scrupp returned ${response.status}`),
+			payload.error_code ?? payload.error?.code,
 			response.status,
 		);
 	}
 
 	return { status: response.status, payload };
+}
+
+/**
+ * Scrupp answers errors in two shapes: `{message, error_code}` and
+ * `{error: {code, message}}` (the Jobs API). Passing the object straight into
+ * Error gave Claude "[object Object]" instead of the reason.
+ */
+export function errorText(error, fallback) {
+	if (typeof error === "string" && error) return error;
+	if (error && typeof error === "object" && typeof error.message === "string" && error.message) return error.message;
+	return fallback;
 }
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -108,7 +119,7 @@ export async function runJob({ type, input, idempotencyKey, waitSeconds }) {
 
 		if (state.status === "failed") {
 			throw new ScruppError(
-				`Job ${created.job_id} failed: ${state.error ?? "unknown error"}`,
+				`Job ${created.job_id} failed: ${errorText(state.error, "unknown error")}`,
 				"upstream_error",
 			);
 		}
