@@ -35,8 +35,54 @@ comes back as `{ status: "running", job_id }` with a note telling the agent to c
 | `scrupp_lookup_company` | Company data by domain, LinkedIn URL or name |
 | `scrupp_find_decision_makers` | Who to write to at a company |
 | `scrupp_find_emails` | Verified work emails from name + domain |
+| `scrupp_verify_emails` | Deliverability check for addresses you already have (1 credit each) |
 | `scrupp_get_job` | Status and records for a job that was still running |
 | `scrupp_credits` | Remaining credits and plan |
+
+Every tool carries a `title` and `readOnlyHint` / `destructiveHint` annotations — the
+Claude connectors directory rejects a server without them.
+
+## Hosted connector (Streamable HTTP)
+
+`node src/http.js` (or `scrupp-mcp-http`) serves the same server over Streamable HTTP
+at `POST /mcp`, stateless, with `GET /health` for a load balancer. `PORT` defaults to
+8787. Each request authenticates with the caller's own key as
+`Authorization: Bearer sk_live_...`; the key is scoped to that request, so one process
+serves many accounts without mixing them up.
+
+The hosted connector exposes a **narrower tool set** than the local server: email
+finding, email verification, job status and credits. The tools that gather data from
+LinkedIn (Sales Navigator, LinkedIn search, profile enrichment) or answer from the
+shared lead base (company lookup, decision makers), and the Apollo export, stay
+local-only — they run through accounts that are not the caller's, which is not
+something to put in a public directory listing.
+
+Try it in Claude Code against a deployed instance:
+
+```bash
+claude mcp add --transport http scrupp https://mcp.scrupp.com/mcp \
+  --header "Authorization: Bearer sk_live_..."
+```
+
+### Connecting with OAuth
+
+Users of Claude.ai, Claude Desktop and Claude Code don't paste a key: they press
+Connect, sign in to Scrupp and allow access. The server advertises its
+authorization server at `/.well-known/oauth-protected-resource` (RFC 9728) and answers
+an unauthenticated request with `401` and a `WWW-Authenticate` header pointing there.
+The authorization server itself lives in the Scrupp app at `app.scrupp.com`
+(`/oauth/register`, `/oauth/authorize`, `/oauth/token`); the access token it issues is
+an ordinary Scrupp API key marked `connector:claude`, which the API restricts to the
+four tools above. Access tokens last an hour, so the server checks the token before
+each request (cached for a minute) and answers `401 invalid_token` when it has expired,
+which is what makes the client refresh it.
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `PORT` | `8787` | Listen port |
+| `MCP_PUBLIC_URL` | `https://mcp.scrupp.com` | Public URL of this server, used in the metadata |
+| `SCRUPP_AUTH_SERVER_URL` | `https://app.scrupp.com` | Where OAuth tokens are issued |
+| `SCRUPP_API_URL` | `https://api.scrupp.com/api/v1` | Scrupp API the tools call |
 
 Tool descriptions are written for a model, not a human: they say when to reach for the
 tool, not just what it does. That is the whole ranking signal in a registry — a listed

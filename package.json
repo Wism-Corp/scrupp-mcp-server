@@ -1,7 +1,7 @@
 {
   "name": "@scrupp/mcp-server",
-  "version": "0.1.0",
-  "description": "MCP server for Scrupp — export LinkedIn, Sales Navigator and Apollo searches, find decision makers, and find and verify work emails",
+  "version": "0.2.0",
+  "description": "MCP server for Scrupp \u2014 export LinkedIn, Sales Navigator and Apollo searches, find decision makers, and find and verify work emails",
   "keywords": [
     "mcp",
     "modelcontextprotocol",
@@ -20,7 +20,12 @@
   },
   "type": "module",
   "bin": {
-    "scrupp-mcp": "src/index.js"
+    "scrupp-mcp": "src/index.js",
+    "scrupp-mcp-http": "src/http.js"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "start:http": "node src/http.js"
   },
   "files": [
     "src",

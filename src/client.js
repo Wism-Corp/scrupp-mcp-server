@@ -1,4 +1,13 @@
+import { AsyncLocalStorage } from "node:async_hooks";
+
 const BASE_URL = process.env.SCRUPP_API_URL ?? "https://api.scrupp.com/api/v1";
+
+// Over HTTP every request carries its own caller's key; over stdio there is one
+// caller and the key comes from the environment. Scoping the key to the request
+// keeps one shared process from ever answering with somebody else's account.
+const requestKey = new AsyncLocalStorage();
+
+export const withApiKey = (apiKey, fn) => requestKey.run(apiKey, fn);
 
 class ScruppError extends Error {
 	constructor(message, code, status) {
@@ -10,9 +19,9 @@ class ScruppError extends Error {
 }
 
 async function call(path, { method = "GET", body, headers } = {}) {
-	const apiKey = process.env.SCRUPP_API_KEY;
+	const apiKey = requestKey.getStore() ?? process.env.SCRUPP_API_KEY;
 	if (!apiKey) {
-		throw new ScruppError("SCRUPP_API_KEY is not set.", "invalid_api_key");
+		throw new ScruppError("No Scrupp API key: set SCRUPP_API_KEY or send Authorization: Bearer.", "invalid_api_key");
 	}
 
 	const response = await fetch(`${BASE_URL}${path}`, {
@@ -48,6 +57,12 @@ export async function ping() {
 
 export async function credits() {
 	const { payload } = await call("/account/credits");
+	return payload;
+}
+
+/** One address per call, one credit each — the API has no batch form. */
+export async function verifyEmail(email) {
+	const { payload } = await call("/email/verify", { method: "POST", body: { email } });
 	return payload;
 }
 

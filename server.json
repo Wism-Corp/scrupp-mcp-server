@@ -6,14 +6,14 @@
     "url": "https://github.com/Wism-Corp/scrupp-mcp-server",
     "source": "github"
   },
-  "version": "0.1.0",
+  "version": "0.2.0",
   "websiteUrl": "https://scrupp.com/docs/api/integrations-jobs",
   "packages": [
     {
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "@scrupp/mcp-server",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "transport": {
         "type": "stdio"
       },
