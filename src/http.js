@@ -22,6 +22,25 @@ const PUBLIC_URL = (process.env.MCP_PUBLIC_URL ?? "https://mcp.scrupp.com").repl
 const AUTH_SERVER_URL = (process.env.SCRUPP_AUTH_SERVER_URL ?? "https://app.scrupp.com").replace(/\/$/, "");
 const RESOURCE_METADATA_URL = `${PUBLIC_URL}/.well-known/oauth-protected-resource`;
 
+/**
+ * Two connectors on one server. `/mcp` is the public one (emails only, listed
+ * in the Claude directory). `/sn` is the private Sales Navigator connector that
+ * customers add by URL. They differ in the OAuth resource: app.scrupp.com
+ * issues a Sales Navigator key only for the `/sn` resource, and the API, not
+ * this server, decides what each key may reach.
+ */
+const ENDPOINTS = {
+	"/mcp": { toolset: "core", metadataUrl: RESOURCE_METADATA_URL },
+	"/sn": { toolset: "sn", metadataUrl: `${RESOURCE_METADATA_URL}/sn` },
+};
+
+const resourceMetadata = (path) => ({
+	resource: `${PUBLIC_URL}${path}`,
+	authorization_servers: [AUTH_SERVER_URL],
+	bearer_methods_supported: ["header"],
+	resource_documentation: "https://scrupp.com/docs/api/integrations-jobs",
+});
+
 // OAuth access tokens expire hourly. A client only refreshes on HTTP 401 from
 // this server, and a dead token would otherwise surface as a tool error inside
 // a 200 — the connector would just stop working after an hour. So the token is
@@ -51,10 +70,10 @@ async function tokenIsValid(apiKey) {
 	return true;
 }
 
-const unauthorized = (res, message, error) => {
+const unauthorized = (res, metadataUrl, message, error) => {
 	res.setHeader(
 		"WWW-Authenticate",
-		`Bearer resource_metadata="${RESOURCE_METADATA_URL}"${error ? `, error="${error}"` : ""}`,
+		`Bearer resource_metadata="${metadataUrl}"${error ? `, error="${error}"` : ""}`,
 	);
 	return reply(res, 401, { jsonrpc: "2.0", error: { code: -32001, message }, id: null });
 };
@@ -93,16 +112,15 @@ const httpServer = createHttpServer(async (req, res) => {
 	if (pathname === "/health") {
 		return reply(res, 200, { ok: true });
 	}
-	// RFC 9728: where a client learns which server issues tokens for /mcp.
+	// RFC 9728: where a client learns which server issues tokens for a resource.
 	if (pathname === "/.well-known/oauth-protected-resource" || pathname === "/.well-known/oauth-protected-resource/mcp") {
-		return reply(res, 200, {
-			resource: `${PUBLIC_URL}/mcp`,
-			authorization_servers: [AUTH_SERVER_URL],
-			bearer_methods_supported: ["header"],
-			resource_documentation: "https://scrupp.com/docs/api/integrations-jobs",
-		});
+		return reply(res, 200, resourceMetadata("/mcp"));
 	}
-	if (pathname !== "/mcp") {
+	if (pathname === "/.well-known/oauth-protected-resource/sn") {
+		return reply(res, 200, resourceMetadata("/sn"));
+	}
+	const endpoint = ENDPOINTS[pathname];
+	if (!endpoint) {
 		return reply(res, 404, { error: "not_found" });
 	}
 	// Stateless: no sessions to resume or close, so only POST means anything.
@@ -112,10 +130,10 @@ const httpServer = createHttpServer(async (req, res) => {
 
 	const apiKey = /^Bearer\s+(\S+)$/i.exec(req.headers.authorization ?? "")?.[1];
 	if (!apiKey) {
-		return unauthorized(res, "Connect your Scrupp account, or send a Scrupp API key as Authorization: Bearer <key>.");
+		return unauthorized(res, endpoint.metadataUrl, "Connect your Scrupp account, or send a Scrupp API key as Authorization: Bearer <key>.");
 	}
 	if (!(await tokenIsValid(apiKey))) {
-		return unauthorized(res, "The Scrupp token is expired or revoked.", "invalid_token");
+		return unauthorized(res, endpoint.metadataUrl, "The Scrupp token is expired or revoked.", "invalid_token");
 	}
 
 	let body;
@@ -125,7 +143,7 @@ const httpServer = createHttpServer(async (req, res) => {
 		return reply(res, 400, { jsonrpc: "2.0", error: { code: -32700, message: "Parse error" }, id: null });
 	}
 
-	const server = createServer({ toolset: "core" });
+	const server = createServer({ toolset: endpoint.toolset });
 	const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
 	res.on("close", () => {
 		transport.close();
@@ -144,5 +162,5 @@ const httpServer = createHttpServer(async (req, res) => {
 });
 
 httpServer.listen(PORT, () => {
-	console.error(`Scrupp MCP connector listening on :${PORT}/mcp`);
+	console.error(`Scrupp MCP connector listening on :${PORT}/mcp and :${PORT}/sn`);
 });
