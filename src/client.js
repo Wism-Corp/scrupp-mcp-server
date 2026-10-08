@@ -66,6 +66,15 @@ export async function verifyEmail(email) {
 	return payload;
 }
 
+/**
+ * Describe an audience in words, get a Sales Navigator search URL whose size
+ * Sales Navigator itself reported. No credits for records — it only builds.
+ */
+export async function buildSearch(prompt) {
+	const { payload } = await call("/search/build", { method: "POST", body: { prompt } });
+	return payload;
+}
+
 export async function createJob(type, input, idempotencyKey) {
 	const { payload } = await call("/jobs", {
 		method: "POST",

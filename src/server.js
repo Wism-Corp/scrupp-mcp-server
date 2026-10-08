@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { credits, jobResult, jobStatus, runJob, ScruppError, verifyEmail } from "./client.js";
+import { buildSearch, credits, jobResult, jobStatus, runJob, ScruppError, verifyEmail } from "./client.js";
 
 const DEFAULT_WAIT_SECONDS = Number(process.env.SCRUPP_WAIT_SECONDS ?? 120);
 
@@ -16,11 +16,15 @@ const SPENDS = { readOnlyHint: false, destructiveHint: false, idempotentHint: tr
  * `toolset: "full"` is every tool, for a user running the server on their own
  * machine with their own key. `"core"` is what the hosted connector exposes:
  * no tool that gathers data from LinkedIn or out of the shared lead base, only
- * email finding and verification plus the bookkeeping tools.
+ * email finding and verification plus the bookkeeping tools. `"sn"` is the
+ * private Sales Navigator connector (mcp.scrupp.com/sn): core plus Sales
+ * Navigator search, which the Scrupp API runs only on the caller's own
+ * connected LinkedIn account.
  */
 export function createServer({ toolset = "full" } = {}) {
-	const server = new McpServer({ name: "scrupp", version: "0.2.0" });
+	const server = new McpServer({ name: "scrupp", version: "0.3.0" });
 	const full = toolset === "full";
+	const sn = toolset === "sn";
 
 	const json = (value) => ({
 		content: [{ type: "text", text: JSON.stringify(value, null, 2) }],
@@ -98,6 +102,53 @@ export function createServer({ toolset = "full" } = {}) {
 		max: args.max ?? 100,
 		...(args.account ? { account: args.account } : {}),
 	});
+
+	if (sn) {
+		server.registerTool(
+			"scrupp_build_sales_navigator_search",
+			{
+				title: "Build a Sales Navigator search",
+				annotations: { title: "Build a Sales Navigator search", readOnlyHint: true, destructiveHint: false, openWorldHint: true },
+				description:
+					"Turn a plain-words audience (role, industry, country or cities, company size) into a Sales Navigator search URL, " +
+					"and report how many people Sales Navigator says it matches. Costs no credits. Runs on the user's own connected " +
+					"Sales Navigator account. Pass the returned `url` to scrupp_export_sales_navigator_search. If the size is far " +
+					"from what the user wants, rephrase the audience and build again before exporting.",
+				inputSchema: {
+					audience: z
+						.string()
+						.min(3)
+						.describe('The audience in words, e.g. "operations directors in logistics, United States, 50-200 employees".'),
+				},
+			},
+			async ({ audience }) => {
+				try {
+					return json(await buildSearch(audience));
+				} catch (error) {
+					return failure(error);
+				}
+			},
+		);
+
+		extractionTool({
+			name: "scrupp_export_sales_navigator_search",
+			title: "Export a Sales Navigator search",
+			description:
+				"Extract the people from a LinkedIn Sales Navigator search URL (linkedin.com/sales/search/people), with titles, " +
+				"companies and, by default, verified work emails. Runs only on the user's own Sales Navigator account connected " +
+				"with the Scrupp extension. One credit per record; check scrupp_credits first and start with a small `max` " +
+				"to confirm the list looks right before exporting the whole search.",
+			schema: {
+				...searchSchema,
+				account: z
+					.string()
+					.optional()
+					.describe("Which of the user's own connected LinkedIn accounts to use, by email. Defaults to one with Sales Navigator."),
+			},
+			toInput: searchInput,
+			type: "sales_navigator.search",
+		});
+	}
 
 	if (full) {
 		extractionTool({

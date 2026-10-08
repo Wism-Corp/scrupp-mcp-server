@@ -64,6 +64,23 @@ claude mcp add --transport http scrupp https://mcp.scrupp.com/mcp \
   --header "Authorization: Bearer sk_live_..."
 ```
 
+### Private Sales Navigator connector (`/sn`)
+
+`POST /sn` serves a second tool set for Scrupp customers who add it by URL
+(Claude.ai: Settings → Connectors → Add custom connector →
+`https://mcp.scrupp.com/sn`). It is not listed in the directory. On top of the
+core tools it has `scrupp_build_sales_navigator_search` (audience in words → a
+Sales Navigator search URL with the size Sales Navigator reports) and
+`scrupp_export_sales_navigator_search`. Both run only on the caller's own
+Sales Navigator account connected with the Scrupp extension; the Scrupp API
+enforces that and refuses the search when there is no such account.
+
+The OAuth resource is what tells the two apart: the protected-resource metadata
+for `/sn` names `https://mcp.scrupp.com/sn`, and app.scrupp.com issues a Sales
+Navigator key (`connector:claude-sn`, plans with API access only) only for that
+resource. A key from the `/mcp` connector gets 403 on Sales Navigator even if it
+is sent to `/sn`.
+
 ### Connecting with OAuth
 
 Users of Claude.ai, Claude Desktop and Claude Code don't paste a key: they press
