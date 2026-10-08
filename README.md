@@ -57,6 +57,17 @@ shared lead base (company lookup, decision makers), and the Apollo export, stay
 local-only — they run through accounts that are not the caller's, which is not
 something to put in a public directory listing.
 
+**Sales Navigator, privately: `POST /sn`.** The same process serves a second endpoint
+with the email tools plus `scrupp_build_sales_navigator_search` (describe an audience
+in words, get a Sales Navigator search URL with the result count Sales Navigator
+reports) and `scrupp_export_sales_navigator_search`. It is not listed in any
+directory: Scrupp hands it to its customers by link
+(`claude mcp add --transport http scrupp-sn https://mcp.scrupp.com/sn`, or a custom
+connector in Claude.ai). Its protected-resource metadata
+(`/.well-known/oauth-protected-resource/sn`) asks for the `scrupp:sn` scope; the
+consent page then lists Sales Navigator, and only such a grant yields a key the API
+lets into the Sales Navigator endpoints.
+
 Try it in Claude Code against a deployed instance:
 
 ```bash

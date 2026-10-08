@@ -66,6 +66,17 @@ export async function verifyEmail(email) {
 	return payload;
 }
 
+/**
+ * A plain-language audience description → a Sales Navigator search URL whose
+ * result count Scrupp has already checked with Sales Navigator. Answers in the
+ * same request; a refusal (unresolved audience, a link Sales Navigator rejects,
+ * the daily build limit) comes back as a ScruppError with its error_code.
+ */
+export async function buildSearch(description) {
+	const { payload } = await call("/search/build", { method: "POST", body: { prompt: description } });
+	return payload;
+}
+
 export async function createJob(type, input, idempotencyKey) {
 	const { payload } = await call("/jobs", {
 		method: "POST",

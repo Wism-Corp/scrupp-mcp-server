@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { credits, jobResult, jobStatus, runJob, ScruppError, verifyEmail } from "./client.js";
+import { buildSearch, credits, jobResult, jobStatus, runJob, ScruppError, verifyEmail } from "./client.js";
 
 const DEFAULT_WAIT_SECONDS = Number(process.env.SCRUPP_WAIT_SECONDS ?? 120);
 
@@ -14,13 +14,20 @@ const SPENDS = { readOnlyHint: false, destructiveHint: false, idempotentHint: tr
 
 /**
  * `toolset: "full"` is every tool, for a user running the server on their own
- * machine with their own key. `"core"` is what the hosted connector exposes:
- * no tool that gathers data from LinkedIn or out of the shared lead base, only
- * email finding and verification plus the bookkeeping tools.
+ * machine with their own key. `"core"` is what the hosted connector exposes at
+ * /mcp: no tool that gathers data from LinkedIn or out of the shared lead base,
+ * only email finding and verification plus the bookkeeping tools. `"sn"` is the
+ * private Sales Navigator connector at /sn: core plus building a Sales
+ * Navigator search from a description and exporting it.
+ *
+ * The toolset only decides what Claude is offered. What a key may actually do
+ * is enforced by the Scrupp API (ConnectorKeyGuard), so a core key that calls
+ * the Sales Navigator endpoints directly is refused there.
  */
 export function createServer({ toolset = "full" } = {}) {
-	const server = new McpServer({ name: "scrupp", version: "0.2.0" });
+	const server = new McpServer({ name: "scrupp", version: "0.3.0" });
 	const full = toolset === "full";
+	const salesNavigator = full || toolset === "sn";
 
 	const json = (value) => ({
 		content: [{ type: "text", text: JSON.stringify(value, null, 2) }],
@@ -99,17 +106,47 @@ export function createServer({ toolset = "full" } = {}) {
 		...(args.account ? { account: args.account } : {}),
 	});
 
-	if (full) {
+	if (salesNavigator) {
+		server.registerTool(
+			"scrupp_build_sales_navigator_search",
+			{
+				title: "Build a Sales Navigator search",
+				annotations: { title: "Build a Sales Navigator search", ...READS, openWorldHint: true },
+				description:
+					"Turn a plain-language audience into a LinkedIn Sales Navigator search URL, with the number of results Sales Navigator reports for it. " +
+					"Describe roles, a country, and optionally industry and company size, e.g. \"operations directors in logistics, United States, 50-200 employees\". " +
+					"Costs no credits. Read `estimated_results`, `filters_used` and `warnings` back to the user before exporting — titles are matched as keywords and exclusions are not applied. " +
+					"Then pass `url` to scrupp_export_sales_navigator_search.",
+				inputSchema: {
+					description: z
+						.string()
+						.min(3)
+						.describe("Who to find, in words: roles, country, and optionally industry and company size."),
+				},
+			},
+			async ({ description }) => {
+				try {
+					return json(await buildSearch(description));
+				} catch (error) {
+					return failure(error);
+				}
+			},
+		);
+
 		extractionTool({
 			name: "scrupp_export_sales_navigator_search",
 			title: "Export a Sales Navigator search",
 			description:
-				"Extract the people from a LinkedIn Sales Navigator search URL, with their titles, companies and (by default) verified work emails. Use this when the user has a Sales Navigator search they want as a list.",
+				"Extract the people from a LinkedIn Sales Navigator search URL, with their titles, companies and (by default) verified work emails. " +
+				"Use a URL from scrupp_build_sales_navigator_search or one the user pasted. One credit per record requested (`max`, default 100); " +
+				"check scrupp_credits first and start with a small `max` to show the user a sample before exporting the whole search.",
 			schema: searchSchema,
 			toInput: searchInput,
 			type: "sales_navigator.search",
 		});
+	}
 
+	if (full) {
 		extractionTool({
 			name: "scrupp_export_linkedin_search",
 			title: "Export a LinkedIn search",
