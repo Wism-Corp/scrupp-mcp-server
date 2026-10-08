@@ -35,8 +35,37 @@ comes back as `{ status: "running", job_id }` with a note telling the agent to c
 | `scrupp_lookup_company` | Company data by domain, LinkedIn URL or name |
 | `scrupp_find_decision_makers` | Who to write to at a company |
 | `scrupp_find_emails` | Verified work emails from name + domain |
+| `scrupp_verify_emails` | Deliverability check for addresses you already have (1 credit each) |
 | `scrupp_get_job` | Status and records for a job that was still running |
 | `scrupp_credits` | Remaining credits and plan |
+
+Every tool carries a `title` and `readOnlyHint` / `destructiveHint` annotations — the
+Claude connectors directory rejects a server without them.
+
+## Hosted connector (Streamable HTTP)
+
+`node src/http.js` (or `scrupp-mcp-http`) serves the same server over Streamable HTTP
+at `POST /mcp`, stateless, with `GET /health` for a load balancer. `PORT` defaults to
+8787. Each request authenticates with the caller's own key as
+`Authorization: Bearer sk_live_...`; the key is scoped to that request, so one process
+serves many accounts without mixing them up.
+
+The hosted connector exposes a **narrower tool set** than the local server: email
+finding, email verification, job status and credits. The tools that gather data from
+LinkedIn (Sales Navigator, LinkedIn search, profile enrichment) or answer from the
+shared lead base (company lookup, decision makers), and the Apollo export, stay
+local-only — they run through accounts that are not the caller's, which is not
+something to put in a public directory listing.
+
+Try it in Claude Code against a deployed instance:
+
+```bash
+claude mcp add --transport http scrupp https://mcp.scrupp.com/mcp \
+  --header "Authorization: Bearer sk_live_..."
+```
+
+A listing in the Claude connectors directory also needs OAuth 2.0 instead of a pasted
+key; that is the next step and is not built yet.
 
 Tool descriptions are written for a model, not a human: they say when to reach for the
 tool, not just what it does. That is the whole ranking signal in a registry — a listed
