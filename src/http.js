@@ -38,7 +38,7 @@ const resourceMetadata = (path) => ({
 	resource: `${PUBLIC_URL}${path}`,
 	authorization_servers: [AUTH_SERVER_URL],
 	bearer_methods_supported: ["header"],
-	resource_documentation: "https://scrupp.com/docs/api/integrations-jobs",
+	resource_documentation: "https://scrupp.com/docs/api/claude",
 });
 
 // OAuth access tokens expire hourly. A client only refreshes on HTTP 401 from
