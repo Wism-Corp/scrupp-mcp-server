@@ -23,7 +23,18 @@ const SPENDS = { readOnlyHint: false, destructiveHint: false, idempotentHint: tr
  * caller's own connected accounts.
  */
 export function createServer({ toolset = "full" } = {}) {
-	const server = new McpServer({ name: "scrupp", version: "0.3.0" });
+	// Claude reads `instructions` when the server connects: the one place to point
+	// it at the setup guide, so a missing LinkedIn account or empty balance ends
+	// with a link the person can follow, not a guess.
+	const server = new McpServer(
+		{ name: "scrupp", version: "0.3.0" },
+		{
+			instructions:
+				"Scrupp setup guide and troubleshooting: https://scrupp.com/docs/api/claude. " +
+				"When a tool reports missing credits or no connected LinkedIn account, give the person " +
+				"the link from the error (or https://app.scrupp.com/app/plans for credits) and ask them to try again after.",
+		},
+	);
 	const full = toolset === "full";
 	const sn = toolset === "sn";
 

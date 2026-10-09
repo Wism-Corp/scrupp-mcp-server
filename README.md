@@ -5,6 +5,11 @@ writing HTTP calls. Ships as `@scrupp/mcp-server` on npm and as a listing in the
 registry; that registry is what a growing number of agent runtimes read when they pick
 a tool, which is why this is the channel where the buyer is not a person.
 
+## In Claude (no install)
+
+Add `https://mcp.scrupp.com/sn` as a custom connector in Claude and sign in to Scrupp.
+Setup steps, what each tool needs and troubleshooting: https://scrupp.com/docs/api/claude
+
 ## Using it
 
 ```json
