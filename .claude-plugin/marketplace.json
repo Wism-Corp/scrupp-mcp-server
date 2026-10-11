@@ -1,0 +1,15 @@
+{
+  "name": "scrupp",
+  "description": "Scrupp's plugins for Claude Code.",
+  "owner": {
+    "name": "Scrupp",
+    "email": "iv@scrupp.com"
+  },
+  "plugins": [
+    {
+      "name": "scrupp",
+      "source": "./",
+      "description": "Scrupp in Claude Code: Sales Navigator and LinkedIn exports, decision makers, and work email finding and verification."
+    }
+  ]
+}
