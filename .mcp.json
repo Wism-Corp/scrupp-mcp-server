@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "scrupp": {
+      "type": "http",
+      "url": "https://mcp.scrupp.com/sn"
+    }
+  }
+}

@@ -10,6 +10,23 @@ a tool, which is why this is the channel where the buyer is not a person.
 Add `https://mcp.scrupp.com/sn` as a custom connector in Claude and sign in to Scrupp.
 Setup steps, what each tool needs and troubleshooting: https://scrupp.com/docs/api/claude
 
+## In Claude Code (plugin)
+
+```
+/plugin install scrupp --marketplace Wism-Corp/scrupp-mcp-server
+```
+
+On Claude Code older than 2.1.275, in two steps:
+
+```
+/plugin marketplace add Wism-Corp/scrupp-mcp-server
+/plugin install scrupp@scrupp
+```
+
+The plugin connects Claude Code to the hosted connector at `https://mcp.scrupp.com/sn`,
+the same full tool set as the private Claude connector, so nothing is installed
+locally. The first time a tool runs, open `/mcp`, pick `scrupp` and sign in to Scrupp.
+
 ## Using it
 
 ```json
