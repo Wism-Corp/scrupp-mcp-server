@@ -19,8 +19,9 @@ const SPENDS = { readOnlyHint: false, destructiveHint: false, idempotentHint: tr
  * email finding and verification plus the bookkeeping tools. `"sn"` is the
  * private connector (mcp.scrupp.com/sn): core plus the rest of the API —
  * Sales Navigator search built from words, LinkedIn and Apollo searches,
- * profiles, companies, decision makers — which the Scrupp API runs only on the
- * caller's own connected accounts.
+ * profiles, companies, decision makers — which the Scrupp API runs on the
+ * caller's own LinkedIn account with Sales Navigator when one is connected, and
+ * otherwise on Scrupp's shared account pool (paid plans).
  */
 export function createServer({ toolset = "full" } = {}) {
 	// Claude reads `instructions` when the server connects: the one place to point
@@ -124,7 +125,7 @@ export function createServer({ toolset = "full" } = {}) {
 				description:
 					"Turn a plain-words audience (role, industry, country or cities, company size) into a Sales Navigator search URL, " +
 					"and report how many people Sales Navigator says it matches. Costs no credits. Runs on the user's own connected " +
-					"Sales Navigator account. Pass the returned `url` to scrupp_export_sales_navigator_search. If the size is far " +
+					"Sales Navigator account when there is one, otherwise on Scrupp's shared account pool (paid plans). Pass the returned `url` to scrupp_export_sales_navigator_search. If the size is far " +
 					"from what the user wants, rephrase the audience and build again before exporting.",
 				inputSchema: {
 					audience: z
@@ -147,8 +148,8 @@ export function createServer({ toolset = "full" } = {}) {
 			title: "Export a Sales Navigator search",
 			description:
 				"Extract the people from a LinkedIn Sales Navigator search URL (linkedin.com/sales/search/people), with titles, " +
-				"companies and, by default, verified work emails. Runs only on the user's own Sales Navigator account connected " +
-				"with the Scrupp extension. One credit per record; check scrupp_credits first and start with a small `max` " +
+				"companies and, by default, verified work emails. Runs on the user's own Sales Navigator account connected " +
+				"with the Scrupp extension when there is one, otherwise on Scrupp's shared account pool (paid plans). One credit per record; check scrupp_credits first and start with a small `max` " +
 				"to confirm the list looks right before exporting the whole search.",
 			schema: {
 				...searchSchema,
@@ -174,11 +175,12 @@ export function createServer({ toolset = "full" } = {}) {
 		});
 	}
 
-	// The rest of the API. On the private connector every one of these runs on the
-	// user's own connected accounts only: the Scrupp API holds the connector's key
-	// to the caller's sessions and refuses rather than borrowing anyone else's.
+	// The rest of the API. On the private connector the Scrupp API decides whose
+	// session runs each job: the caller's own LinkedIn account with Sales
+	// Navigator when one is connected, otherwise the shared account pool, which
+	// is open to paid plans only.
 	const ownAccounts = sn
-		? " Runs only on the user's own accounts connected with the Scrupp extension; without one it is refused, never run on someone else's."
+		? " Runs on the user's own LinkedIn account with Sales Navigator when one is connected with the Scrupp extension; otherwise on Scrupp's shared account pool (paid plans)."
 		: "";
 
 	if (full || sn) {

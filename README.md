@@ -108,10 +108,10 @@ search URL with the size Sales Navigator reports, no credits),
 `scrupp_run_apollo_search`, `scrupp_enrich_linkedin_profiles` (optionally with
 emails), `scrupp_lookup_company` and `scrupp_find_decision_makers`.
 
-All of them run only on the caller's own accounts connected with the Scrupp
-extension. The Scrupp API enforces that, not this server: with this key it
-hands out only the caller's own LinkedIn sessions and refuses the job when
-there is none.
+When the caller has a LinkedIn account with Sales Navigator connected with the
+Scrupp extension, all of them run only on that account. Without one, they run
+on Scrupp's shared account pool, which is open to paid plans. The Scrupp API
+decides this, not this server.
 
 The OAuth resource is what tells the two apart: the protected-resource metadata
 for `/sn` names `https://mcp.scrupp.com/sn`, and app.scrupp.com issues the

@@ -56,10 +56,12 @@ up": that is a new job and holds credits a second time.
 ## When a tool refuses
 
 - **No connected LinkedIn / Sales Navigator / Apollo account.** The LinkedIn and
-  Apollo tools run only on the user's own accounts, connected with the Scrupp
-  browser extension; they never borrow anyone else's. Give the user the link from
-  the error (or https://scrupp.com/docs/api/claude) and ask them to retry once it
-  is connected. Do not try another tool to get around it.
+  Apollo tools run on the user's own LinkedIn account with Sales Navigator when
+  one is connected with the Scrupp browser extension, and otherwise on Scrupp's
+  shared account pool, which is open to paid plans only. A refusal here means
+  neither is available: give the user the link from the error (or
+  https://scrupp.com/docs/api/claude) and ask them to retry once it is fixed. Do
+  not try another tool to get around it.
 - **Not enough credits.** Give https://app.scrupp.com/app/plans.
 - **Token expired / connect your account.** Ask the user to open `/mcp`, pick
   `scrupp` and sign in again.
