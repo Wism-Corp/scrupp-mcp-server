@@ -27,6 +27,16 @@ The plugin connects Claude Code to the hosted connector at `https://mcp.scrupp.c
 the same full tool set as the private Claude connector, so nothing is installed
 locally. The first time a tool runs, open `/mcp`, pick `scrupp` and sign in to Scrupp.
 
+The plugin carries two things:
+
+- `.mcp.json` — the hosted connector above, signed in with OAuth.
+- `skills/scrupp-prospecting` — how Claude should use the tools: check credits
+  first, pick the tool from what the user has, export five records as a sample
+  before the whole search, collect long jobs with `scrupp_get_job`, and what to
+  say when a tool refuses.
+
+Check it before a release with `claude plugin validate .`.
+
 ## Using it
 
 ```json
