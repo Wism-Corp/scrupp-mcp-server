@@ -9,7 +9,15 @@
     "url": "https://scrupp.com"
   },
   "homepage": "https://scrupp.com/docs/api/claude",
+  "privacyPolicyUrl": "https://scrupp.com/policy",
   "repository": "https://github.com/Wism-Corp/scrupp-mcp-server",
   "license": "MIT",
-  "keywords": ["lead-generation", "linkedin", "sales-navigator", "apollo", "email-finder", "email-verification"]
+  "keywords": [
+    "lead-generation",
+    "linkedin",
+    "sales-navigator",
+    "apollo",
+    "email-finder",
+    "email-verification"
+  ]
 }
