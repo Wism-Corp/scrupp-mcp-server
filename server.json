@@ -1,19 +1,19 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
-  "name": "io.github.wism-corp/scrupp",
+  "name": "io.github.wismhero-maker/scrupp",
   "description": "Export LinkedIn, Sales Navigator and Apollo searches; find decision makers and verified work emails",
   "repository": {
     "url": "https://github.com/Wism-Corp/scrupp-mcp-server",
     "source": "github"
   },
-  "version": "0.2.1",
+  "version": "0.2.2",
   "websiteUrl": "https://scrupp.com/docs/api/integrations-jobs",
   "packages": [
     {
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "scrupp-mcp-server",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "transport": {
         "type": "stdio"
       },

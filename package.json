@@ -1,6 +1,6 @@
 {
   "name": "scrupp-mcp-server",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "MCP server for Scrupp \u2014 export LinkedIn, Sales Navigator and Apollo searches, find decision makers, and find and verify work emails",
   "keywords": [
     "mcp",
@@ -36,7 +36,7 @@
   "engines": {
     "node": ">=20"
   },
-  "mcpName": "io.github.wism-corp/scrupp",
+  "mcpName": "io.github.wismhero-maker/scrupp",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.13.0",
     "zod": "^3.24.0"
