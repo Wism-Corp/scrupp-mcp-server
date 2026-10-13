@@ -1,6 +1,20 @@
+import { createHash } from "node:crypto";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { buildSearch, credits, jobResult, jobStatus, runJob, ScruppError, verifyEmail } from "./client.js";
+
+/**
+ * Idempotency-Key for one tool call: a hash of the whole input, not its first
+ * 200 characters. Two Sales Navigator URLs share a long prefix, so the
+ * truncated form gave two different searches the same key and Scrupp refused
+ * the second with 409 idempotency_key_reused. The ten-minute bucket keeps
+ * client retries of one call deduplicated without replaying an old job when
+ * the person deliberately runs the same search again later.
+ */
+export function idempotencyKeyFor(jobType, input, now = Date.now()) {
+	const digest = createHash("sha256").update(JSON.stringify(input)).digest("hex").slice(0, 32);
+	return `mcp-${jobType}-${digest}-${Math.floor(now / 600_000)}`;
+}
 
 const DEFAULT_WAIT_SECONDS = Number(process.env.SCRUPP_WAIT_SECONDS ?? 120);
 
@@ -86,7 +100,7 @@ export function createServer({ toolset = "full" } = {}) {
 					const result = await runJob({
 						type: jobType,
 						input: toInput(args),
-						idempotencyKey: `mcp-${jobType}-${JSON.stringify(toInput(args))}`.slice(0, 200),
+						idempotencyKey: idempotencyKeyFor(jobType, toInput(args)),
 						waitSeconds: args.wait_seconds ?? DEFAULT_WAIT_SECONDS,
 					});
 					return json(result);

@@ -18,7 +18,7 @@ class ScruppError extends Error {
 	}
 }
 
-async function call(path, { method = "GET", body, headers } = {}) {
+async function call(path, { method = "GET", body, headers, notReadyOk = false } = {}) {
 	const apiKey = requestKey.getStore() ?? process.env.SCRUPP_API_KEY;
 	if (!apiKey) {
 		throw new ScruppError("No Scrupp API key: set SCRUPP_API_KEY or send Authorization: Bearer.", "invalid_api_key");
@@ -37,7 +37,10 @@ async function call(path, { method = "GET", body, headers } = {}) {
 	const payload = await response.json().catch(() => ({}));
 
 	// A 409 on the result endpoint means "not finished yet" — the caller decides.
-	if (!response.ok && response.status !== 409) {
+	// Anywhere else a 409 is a refusal (e.g. an Idempotency-Key reused with a
+	// different body on POST /jobs); letting it through as success made the
+	// caller poll /jobs/undefined and show the connector guard's 403 instead.
+	if (!response.ok && !(notReadyOk && response.status === 409)) {
 		throw new ScruppError(
 			errorText(payload.message ?? payload.error, `Scrupp returned ${response.status}`),
 			payload.error_code ?? payload.error?.code,
@@ -101,7 +104,7 @@ export async function jobStatus(jobId) {
 }
 
 export async function jobResult(jobId) {
-	const { status, payload } = await call(`/jobs/${jobId}/result`);
+	const { status, payload } = await call(`/jobs/${jobId}/result`, { notReadyOk: true });
 	return { ready: status === 200, payload };
 }
 
