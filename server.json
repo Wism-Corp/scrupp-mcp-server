@@ -12,7 +12,7 @@
     {
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
-      "identifier": "@scrupp/mcp-server",
+      "identifier": "scrupp-mcp-server",
       "version": "0.2.0",
       "transport": {
         "type": "stdio"
