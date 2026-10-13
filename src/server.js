@@ -1,7 +1,11 @@
 import { createHash } from "node:crypto";
+import { createRequire } from "node:module";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { buildSearch, credits, jobResult, jobStatus, runJob, ScruppError, verifyEmail } from "./client.js";
+
+// Report the published package version, so serverInfo never drifts from npm again.
+const { version } = createRequire(import.meta.url)("../package.json");
 
 /**
  * Idempotency-Key for one tool call: a hash of the whole input, not its first
@@ -42,7 +46,7 @@ export function createServer({ toolset = "full" } = {}) {
 	// it at the setup guide, so a missing LinkedIn account or empty balance ends
 	// with a link the person can follow, not a guess.
 	const server = new McpServer(
-		{ name: "scrupp", version: "0.3.0" },
+		{ name: "scrupp", version },
 		{
 			instructions:
 				"Scrupp setup guide and troubleshooting: https://scrupp.com/docs/api/claude. " +
