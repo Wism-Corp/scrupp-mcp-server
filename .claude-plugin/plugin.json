@@ -1,7 +1,7 @@
 {
   "name": "scrupp",
   "displayName": "Scrupp",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Build Sales Navigator searches from a description, export LinkedIn, Sales Navigator and Apollo searches, find decision makers at a company, and find and verify work emails, through your Scrupp account.",
   "author": {
     "name": "Scrupp",
