@@ -7,7 +7,7 @@
     "source": "github"
   },
   "version": "0.2.3",
-  "websiteUrl": "https://scrupp.com/docs/api/integrations-jobs",
+  "websiteUrl": "https://scrupp.com/email-finder-mcp",
   "packages": [
     {
       "registryType": "npm",

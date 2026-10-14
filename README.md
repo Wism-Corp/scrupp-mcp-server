@@ -1,9 +1,10 @@
 # Scrupp MCP server
 
-An MCP server over the Scrupp Jobs API, so an agent can pull leads without anyone
-writing HTTP calls. Ships as `scrupp-mcp-server` on npm and as a listing in the MCP
-registry; that registry is what a growing number of agent runtimes read when they pick
-a tool, which is why this is the channel where the buyer is not a person.
+An MCP server over the Scrupp Jobs API, so an agent can export LinkedIn, Sales
+Navigator and Apollo searches, find decision makers, and find and verify work emails
+without anyone writing HTTP calls. Ships as `scrupp-mcp-server` on npm and in the
+official MCP registry as `io.github.wismhero-maker/scrupp`. Overview:
+https://scrupp.com/email-finder-mcp
 
 ## In Claude (no install)
 

@@ -13,7 +13,7 @@
     "email-finder"
   ],
   "license": "MIT",
-  "homepage": "https://scrupp.com/docs/api/integrations-jobs",
+  "homepage": "https://scrupp.com/email-finder-mcp",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Wism-Corp/scrupp-mcp-server.git"
