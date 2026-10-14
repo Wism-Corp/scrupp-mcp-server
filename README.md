@@ -8,8 +8,11 @@ https://scrupp.com/email-finder-mcp
 
 ## In Claude (no install)
 
-Add `https://mcp.scrupp.com/sn` as a custom connector in Claude and sign in to Scrupp.
-Setup steps, what each tool needs and troubleshooting: https://scrupp.com/docs/api/claude
+Add `https://mcp.scrupp.com/mcp` as a custom connector in Claude and sign in to Scrupp.
+It finds and verifies work emails on any Scrupp plan, including the free one. Scrupp
+customers who want the full tool set use the private connector described in the
+setup guide. Setup steps, what each tool needs and troubleshooting:
+https://scrupp.com/docs/api/claude
 
 ## In Claude Code (plugin)
 
@@ -24,8 +27,8 @@ On Claude Code older than 2.1.275, in two steps:
 /plugin install scrupp@scrupp
 ```
 
-The plugin connects Claude Code to the hosted connector at `https://mcp.scrupp.com/sn`,
-the same full tool set as the private Claude connector, so nothing is installed
+The plugin connects Claude Code to Scrupp's private hosted connector, with the same
+full tool set as the private Claude connector, so nothing is installed
 locally. The first time a tool runs, open `/mcp`, pick `scrupp` and sign in to Scrupp.
 
 The plugin carries two things:
@@ -97,11 +100,11 @@ claude mcp add --transport http scrupp https://mcp.scrupp.com/mcp \
   --header "Authorization: Bearer sk_live_..."
 ```
 
-### Private connector with the full API (`/sn`)
+### Private connector with the full API
 
-`POST /sn` serves a second tool set for Scrupp customers who add it by URL
-(Claude.ai: Settings → Connectors → Add custom connector →
-`https://mcp.scrupp.com/sn`). It is not listed in the directory and works on
+A second endpoint serves a fuller tool set for Scrupp customers who add it by URL
+(Claude.ai: Settings → Connectors → Add custom connector; the address is in the
+setup guide at https://scrupp.com/docs/api/claude). It is not listed in the directory and works on
 every Scrupp plan. On top of the core tools it has the rest of the API:
 `scrupp_build_sales_navigator_search` (audience in words → a Sales Navigator
 search URL with the size Sales Navigator reports, no credits),
@@ -114,11 +117,11 @@ Scrupp extension, all of them run only on that account. Without one, they run
 on Scrupp's shared account pool, which is open to paid plans. The Scrupp API
 decides this, not this server.
 
-The OAuth resource is what tells the two apart: the protected-resource metadata
-for `/sn` names `https://mcp.scrupp.com/sn`, and app.scrupp.com issues the
-private connector's key (`connector:claude-sn`) only for that resource. A key
-from the `/mcp` connector gets 403 on everything beyond email finding even if
-it is sent to `/sn`.
+The OAuth resource is what tells the two apart: each endpoint's protected-resource
+metadata names its own resource, and app.scrupp.com issues the private connector's
+key (`connector:claude-sn`) only for the private resource. A key from the `/mcp`
+connector gets 403 on everything beyond email finding even if it is sent to the
+private endpoint.
 
 ### Connecting with OAuth
 
