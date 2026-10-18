@@ -22,6 +22,7 @@ spending them on the wrong list.
 
 | The user has | Tool |
 | --- | --- |
+| Sells leads and wants companies to sell them to ("who buys solar leads in the US?") | `scrupp_find_lead_buyers`, then `scrupp_export_sales_navigator_search` |
 | An audience in words ("CFOs at fintechs in Germany, 50–200 people") | `scrupp_build_sales_navigator_search`, then `scrupp_export_sales_navigator_search` |
 | A `linkedin.com/sales/search/people` URL | `scrupp_export_sales_navigator_search` |
 | A `linkedin.com/search/results/people` URL | `scrupp_export_linkedin_search` |
@@ -34,6 +35,24 @@ spending them on the wrong list.
 
 Do not run `scrupp_verify_emails` on addresses `scrupp_find_emails` or an export
 just returned: those are verified already and it would charge twice.
+
+## Finding buyers for leads
+
+Lead generation businesses need companies that will buy their leads: brokerages,
+agencies, carriers, law firms, lenders and contractors with a sales team.
+`scrupp_find_lead_buyers` takes the niche and country and searches for the
+people who sign lead deals there (partnerships, affiliate, marketing and sales
+leaders, and owners).
+
+1. Read `filters_used.industry` in the result. The builder guesses LinkedIn's
+   industry from the niche and sometimes gets it wrong ("solar" can come back as
+   semiconductor manufacturing). If it does, call again with `industry` set to
+   LinkedIn's own name, such as "Solar Electric Power Generation", "Law Practice"
+   or "Insurance".
+2. Export a sample of 5 with `scrupp_export_sales_navigator_search`, then the
+   rest after the user agrees, as below.
+3. Offer the list as companies with their people, since the user pitches a
+   company, not a person.
 
 ## Sample first, then the whole list
 

@@ -108,6 +108,8 @@ setup guide at https://scrupp.com/docs/api/claude). It is not listed in the dire
 every Scrupp plan. On top of the core tools it has the rest of the API:
 `scrupp_build_sales_navigator_search` (audience in words → a Sales Navigator
 search URL with the size Sales Navigator reports, no credits),
+`scrupp_find_lead_buyers` (niche and country → a search for the people who buy
+leads there, for lead generation businesses, no credits),
 `scrupp_export_sales_navigator_search`, `scrupp_export_linkedin_search`,
 `scrupp_run_apollo_search`, `scrupp_enrich_linkedin_profiles` (optionally with
 emails), `scrupp_lookup_company` and `scrupp_find_decision_makers`.
