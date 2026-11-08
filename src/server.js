@@ -32,6 +32,23 @@ export function idempotencyKeyFor(jobType, input, now = Date.now()) {
 	return `mcp-${jobType}-${digest}-${Math.floor(now / 600_000)}`;
 }
 
+/**
+ * The audience a lead seller should pitch: people who sign lead deals at the
+ * businesses that sell what the leads are for. Owners are included because
+ * below ~50 employees they are the ones who decide. The search builder maps the
+ * niche to a LinkedIn industry on its own and sometimes picks the wrong one
+ * ("solar" became semiconductor manufacturing), so `industry` lets the caller
+ * name LinkedIn's industry outright.
+ */
+export function leadBuyerAudience({ niche, country, company_size, industry }) {
+	const size = company_size?.trim() || "11-500 employees";
+	const inIndustry = industry?.trim() ? `, industry ${industry.trim()}` : "";
+	return (
+		"Head of Partnerships, Affiliate Manager, Marketing Director, Head of Growth, Sales Director or Owner " +
+		`at ${niche.trim()} companies${inIndustry}, ${country.trim()}, ${size}`
+	);
+}
+
 const DEFAULT_WAIT_SECONDS = Number(process.env.SCRUPP_WAIT_SECONDS ?? 120);
 
 /**
@@ -167,6 +184,43 @@ export function createServer({ toolset = "full" } = {}) {
 			async ({ audience }) => {
 				try {
 					return json(await buildSearch(audience));
+				} catch (error) {
+					return failure(error);
+				}
+			},
+		);
+
+		server.registerTool(
+			"scrupp_find_lead_buyers",
+			{
+				title: "Find lead buyers",
+				annotations: { title: "Find lead buyers", readOnlyHint: true, destructiveHint: false, openWorldHint: true },
+				description:
+					"For lead generation businesses: find the companies that buy leads in a niche and country, and the people there who " +
+					"sign lead deals. Builds a Sales Navigator search for partnership, affiliate, marketing and sales leaders and owners " +
+					"at companies in that niche, and reports how many people it matches. Costs no credits. Check `filters_used.industry` " +
+					"in the result: if it is not the niche (the builder guesses LinkedIn's industry), call again with `industry` set to " +
+					"LinkedIn's own industry name. Then pass the returned `url` to scrupp_export_sales_navigator_search, sampling 5 first.",
+				inputSchema: {
+					niche: z
+						.string()
+						.min(2)
+						.describe('What the leads are for, e.g. "life insurance", "personal injury law", "solar", "debt relief".'),
+					country: z.string().min(2).describe('Where the buyers are, e.g. "United Kingdom" or "Texas, United States".'),
+					company_size: z
+						.string()
+						.optional()
+						.describe('Employee range of the buyers. Defaults to "11-500 employees", the range that buys leads at volume.'),
+					industry: z
+						.string()
+						.optional()
+						.describe('LinkedIn industry name, when the guessed one is wrong, e.g. "Solar Electric Power Generation", "Law Practice", "Insurance".'),
+				},
+			},
+			async ({ niche, country, company_size, industry }) => {
+				const audience = leadBuyerAudience({ niche, country, company_size, industry });
+				try {
+					return json({ audience, ...(await buildSearch(audience)) });
 				} catch (error) {
 					return failure(error);
 				}
