@@ -149,4 +149,29 @@ export async function runJob({ type, input, idempotencyKey, waitSeconds }) {
 	};
 }
 
+/** Watchlists: free to create and fill; each scheduled check costs 0.5 credit per item. */
+export async function createWatchlist(body) {
+	const { payload } = await call("/watchlists", { method: "POST", body });
+	return payload;
+}
+
+export async function addToWatchlist(watchlistId, items) {
+	const { payload } = await call(`/watchlists/${watchlistId}/items`, { method: "POST", body: { items } });
+	return payload;
+}
+
+export async function listWatchlists() {
+	const { payload } = await call("/watchlists");
+	return payload;
+}
+
+export async function watchlistSignals(watchlistId, { since, limit } = {}) {
+	const query = new URLSearchParams();
+	if (since) query.set("since", since);
+	if (limit) query.set("limit", String(limit));
+	const qs = query.toString();
+	const { payload } = await call(`/watchlists/${watchlistId}/signals${qs ? `?${qs}` : ""}`);
+	return payload;
+}
+
 export { ScruppError };

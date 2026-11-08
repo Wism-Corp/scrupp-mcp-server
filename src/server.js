@@ -2,7 +2,19 @@ import { createHash } from "node:crypto";
 import { createRequire } from "node:module";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { buildSearch, credits, jobResult, jobStatus, runJob, ScruppError, verifyEmail } from "./client.js";
+import {
+	addToWatchlist,
+	buildSearch,
+	createWatchlist,
+	credits,
+	jobResult,
+	jobStatus,
+	listWatchlists,
+	runJob,
+	ScruppError,
+	verifyEmail,
+	watchlistSignals,
+} from "./client.js";
 
 // Report the published package version, so serverInfo never drifts from npm again.
 const { version } = createRequire(import.meta.url)("../package.json");
@@ -264,6 +276,138 @@ export function createServer({ toolset = "full" } = {}) {
 			toInput: (args) => ({ items: args.companies, max: args.max ?? 10 }),
 			type: (args) => `contact.decision_maker.${args.find_by}`,
 		});
+
+		extractionTool({
+			name: "scrupp_get_post_engagers",
+			title: "Get the people engaging with a LinkedIn post",
+			description:
+				"Everyone who reacted to or commented on one LinkedIn post (a linkedin.com/posts/... link), with their titles and companies. " +
+				"A warm audience: they already showed interest in the topic. Emails are off by default; turn on with_emails to also find work emails." +
+				ownAccounts,
+			schema: {
+				url: z.string().url().describe("The LinkedIn post link, for example https://www.linkedin.com/posts/name_topic-activity-7390000000000000000-AbCd."),
+				with_emails: z.boolean().optional().describe("Also find work emails. Defaults to false."),
+				max: z.number().int().min(1).optional().describe("Upper bound on people. One credit per person delivered. Defaults to 100."),
+			},
+			toInput: (args) => ({ url: args.url, with_emails: args.with_emails ?? false, max: args.max ?? 100 }),
+			type: "post.engagers",
+		});
+
+		extractionTool({
+			name: "scrupp_find_local_businesses",
+			title: "Find local businesses on Google Maps",
+			description:
+				"Businesses of one kind in one area from Google Maps, each with its website, address, category, rating and review count " +
+				"(under google_maps), and phone where Maps lists one. Follow up with scrupp_find_decision_makers on the websites to reach the owner or manager.",
+			schema: {
+				query: z.string().min(1).describe('The kind of business, for example "dentists" or "coffee shops".'),
+				location: z.string().optional().describe('City or area, for example "Austin, TX".'),
+				country: z
+					.string()
+					.length(2)
+					.optional()
+					.describe("Two-letter country code that sets the Google region, for example us, gb, de. Defaults to us."),
+				max: z
+					.number()
+					.int()
+					.min(1)
+					.max(500)
+					.optional()
+					.describe("Upper bound on businesses, 500 at most. One credit per business delivered. Defaults to 100."),
+			},
+			toInput: (args) => ({
+				query: args.query,
+				...(args.location ? { location: args.location } : {}),
+				country: (args.country ?? "us").toLowerCase(),
+				max: args.max ?? 100,
+			}),
+			type: "maps.search",
+		});
+	}
+
+	// Signals. Only for a user's own key: the hosted connectors' keys are not
+	// let through to /watchlists, and a watchlist commits to recurring spend.
+	if (full) {
+		const watchItems = z
+			.array(z.string().min(1))
+			.min(1)
+			.max(1000)
+			.describe("LinkedIn profile URLs for people, or company domains / LinkedIn company URLs for companies. 1000 per call at most.");
+
+		server.registerTool(
+			"scrupp_watch",
+			{
+				title: "Watch people or companies for changes",
+				annotations: { title: "Watch people or companies for changes", ...SPENDS, idempotentHint: false },
+				description:
+					"Put people or companies on a Scrupp watchlist so job changes, promotions, new employers, funding and headcount moves are picked up on a schedule. " +
+					"Creating and adding is free; each check costs 0.5 credit per watched item (weekly by default). " +
+					"Pass watchlist_id to add to an existing list instead of creating one. `not_found` lists items Scrupp has no record of yet: they stay on the list but cannot signal until it does. " +
+					"Read what was found with scrupp_list_signals.",
+				inputSchema: {
+					items: watchItems,
+					watchlist_id: z.number().int().optional().describe("Add to this existing watchlist instead of creating a new one."),
+					type: z
+						.enum(["contact", "company"])
+						.optional()
+						.describe('"contact" for people (LinkedIn profile URLs), "company" for companies. New lists only; defaults to contact.'),
+					name: z.string().optional().describe("Name for a new watchlist."),
+					check_every_days: z
+						.union([z.literal(1), z.literal(7)])
+						.optional()
+						.describe("1 for daily checks, 7 for weekly. New lists only; defaults to 7."),
+					callback_url: z
+						.string()
+						.url()
+						.optional()
+						.describe("Public HTTPS URL that receives each batch of new signals as a POST. New lists only."),
+				},
+			},
+			async ({ items, watchlist_id, type, name, check_every_days, callback_url }) => {
+				try {
+					if (watchlist_id !== undefined) {
+						return json(await addToWatchlist(watchlist_id, items));
+					}
+					return json(
+						await createWatchlist({
+							items,
+							...(type ? { type } : {}),
+							...(name ? { name } : {}),
+							...(check_every_days ? { check_every_days } : {}),
+							...(callback_url ? { callback_url } : {}),
+						}),
+					);
+				} catch (error) {
+					return failure(error);
+				}
+			},
+		);
+
+		server.registerTool(
+			"scrupp_list_signals",
+			{
+				title: "Read signals from a watchlist",
+				annotations: { title: "Read signals from a watchlist", ...READS },
+				description:
+					"What changed for the people or companies on a watchlist: job changes, promotions, new companies, funding and headcount moves, newest first. " +
+					"Without watchlist_id, lists your watchlists with their size, schedule and price per check. Free to call.",
+				inputSchema: {
+					watchlist_id: z.number().int().optional().describe("The watchlist to read. Leave out to list your watchlists."),
+					since: z.string().optional().describe("Only signals detected at or after this ISO 8601 date or time."),
+					limit: z.number().int().min(1).max(200).optional().describe("How many signals, 200 at most. Defaults to 50."),
+				},
+			},
+			async ({ watchlist_id, since, limit }) => {
+				try {
+					if (watchlist_id === undefined) {
+						return json(await listWatchlists());
+					}
+					return json(await watchlistSignals(watchlist_id, { since, limit }));
+				} catch (error) {
+					return failure(error);
+				}
+			},
+		);
 	}
 
 	extractionTool({
